@@ -8,7 +8,7 @@ using namespace BLA;
 class KalmanFilter{
 
   private:
-
+  char* taskName;
   static const int systemOrder = 2;
 
   Matrix<systemOrder, systemOrder> A;
@@ -42,7 +42,8 @@ class KalmanFilter{
     float qValue2, 
     float rValue,
     QueueHandle_t inputOutputQueue,
-    QueueHandle_t statesQueue
+    QueueHandle_t statesQueue,
+    char* taskName
   );
 
   ~KalmanFilter();
