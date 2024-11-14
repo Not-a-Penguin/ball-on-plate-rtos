@@ -1,11 +1,12 @@
 #include "freertos/portmacro.h"
 #include "controller.h"
 
-Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t statesQueue, QueueHandle_t inputQueue, EventBits_t inputEventBit){
+Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t statesQueue, QueueHandle_t inputQueue, EventBits_t inputEventBit, char* taskName){
    this->K = gains;
    this->statesQueue = statesQueue;
    this->inputQueue = inputQueue;
    this->inputEventBit = inputEventBit;
+   this->taskName = taskName;
 };
 
 Controller::~Controller(){};
@@ -41,14 +42,12 @@ void Controller::run(){
 
     }
   }
-
-
 }
 
 void Controller::start(){
     xTaskCreate(
     controllerTask, 
-    "controllerTask", 
+    this->taskName, 
     3000,
     this, 
     tskIDLE_PRIORITY+2, 
