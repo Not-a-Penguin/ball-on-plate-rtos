@@ -61,11 +61,11 @@ Matrix<1,2> hInfSatGains = {17.8954, 10.0515};
 Matrix<1,2> lqrGains = {8.4460, 8.7225}; 
 Matrix<1, 2> poleGains = {2.0527, 1.8320};
 
-KalmanFilter xFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, xInputOutputQueue, xStatesQueue);
-KalmanFilter yFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, yInputOutputQueue, yStatesQueue);
+KalmanFilter xFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, xInputOutputQueue, xStatesQueue, "xFilterTask");
+KalmanFilter yFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, yInputOutputQueue, yStatesQueue, "yFilterTask");
 
-Controller xController(poleGains, xStatesQueue, xControlInputQueue, xControlInputBitReady);
-Controller yController(poleGains, yStatesQueue, yControlInputQueue, yControlInputBitReady);
+Controller xController(poleGains, xStatesQueue, xControlInputQueue, controlInputEvent,  xControlInputBitReady, "xControllerTask");
+Controller yController(poleGains, yStatesQueue, yControlInputQueue, controlInputEvent, yControlInputBitReady, "yControllerTask");
 
 void setup(){
 
