@@ -1,12 +1,14 @@
 #include "freertos/portmacro.h"
 #include "controller.h"
 
-Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t statesQueue, QueueHandle_t inputQueue, EventBits_t inputEventBit, char* taskName){
+Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t statesQueue, QueueHandle_t inputQueue,
+                       EventGroupHandle_t xEventGroup, EventBits_t inputEventBit, char* taskName){
    this->K = gains;
    this->statesQueue = statesQueue;
    this->inputQueue = inputQueue;
    this->inputEventBit = inputEventBit;
    this->taskName = taskName;
+   this->xEventGroup = xEventGroup;
 };
 
 Controller::~Controller(){};
@@ -37,9 +39,8 @@ void Controller::run(){
 
       //Send to touchScreenQueue
       xQueueSend(this->inputQueue, &controlInput, portMAX_DELAY);
-      //Set event bit
       // xEvent
-
+      xEventGroupSetBits(this->xEventGroup, this->inputEventBit);
     }
   }
 }

@@ -15,10 +15,10 @@ class Controller{
   public:  
 
   Controller(
-    Matrix<1, systemOrder> 
-    gains,
+    Matrix<1, systemOrder> gains,
     QueueHandle_t statesQueue,
     QueueHandle_t inputQueue, 
+    EventGroupHandle_t xEventGroup,
     EventBits_t inputEventBit,
     char* taskName);
 
@@ -29,6 +29,7 @@ class Controller{
   QueueHandle_t statesQueue;
   QueueHandle_t inputQueue;
   EventBits_t inputEventBit;
+  EventGroupHandle_t xEventGroup;
   static void controllerTask(void* params);
   void run();
   void start();
