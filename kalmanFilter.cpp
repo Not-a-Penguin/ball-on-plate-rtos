@@ -3,7 +3,7 @@
 
 static const int systemOrder = 2;
 
-KalmanFilter::KalmanFilter(Matrix<systemOrder, systemOrder> A, Matrix<systemOrder,1> B, Matrix<1, systemOrder> C, float qValue1, float qValue2, float rValue, QueueHandle_t inputOutputQueue, QueueHandle_t statesQueue){
+KalmanFilter::KalmanFilter(Matrix<systemOrder, systemOrder> A, Matrix<systemOrder,1> B, Matrix<1, systemOrder> C, float qValue1, float qValue2, float rValue, QueueHandle_t inputOutputQueue, QueueHandle_t statesQueue, char* taskName){
   
   this->A = A;
   this->B = B;
@@ -17,7 +17,7 @@ KalmanFilter::KalmanFilter(Matrix<systemOrder, systemOrder> A, Matrix<systemOrde
 
   this->inputOutputQueue = inputOutputQueue;
   this->statesQueue = statesQueue;
-
+  this->taskName = taskName;
 };
 
 KalmanFilter::~KalmanFilter(){};
@@ -51,7 +51,7 @@ void KalmanFilter::run(){
 void KalmanFilter::start(){
   xTaskCreate(
     kfTask, 
-    "kfTask", 
+    this->taskName, 
     3000,
     this, 
     tskIDLE_PRIORITY+1, 
