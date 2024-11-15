@@ -46,7 +46,7 @@ depends on statesQueue
 */
 
 TouchScreen ts(27, 26, 32, 33, 25, 
-  xControlInputQueue, 
+  xControlInputQueue,
   yControlInputQueue,
   xInputOutputQueue,
   yInputOutputQueue,
@@ -71,6 +71,7 @@ void setup(){
 
   Serial.begin(1000000);
   Serial.println("Start");
+  // servos.startPosition();
 
   xControlInputQueue = xQueueCreate(1, sizeof(float));
   yControlInputQueue = xQueueCreate(1, sizeof(float));

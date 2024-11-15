@@ -16,7 +16,7 @@ TouchScreen::TouchScreen(
   EventGroupHandle_t inputEventGroup,
   EventBits_t xIputEventBit,
   EventBits_t yInputEventBit
-){
+) : servos(23, 19) {
 
   //Set the pins according to the corners of the screen
   this->_upperLeftPin = upperLeft;
@@ -28,6 +28,8 @@ TouchScreen::TouchScreen(
   this->_sensorPin = sensorPin;
 
   this->setPins();
+
+  this->servos.startPosition();
 
   //RTOS
 
@@ -56,6 +58,11 @@ void TouchScreen::run(){
     float xInput;
     float yInput;
 
+    float uDegreeX;
+    float uDegreeY;
+    float angleX;
+    float angleY;
+
     //Wait for control input to be updated
     EventBits_t eventBit = xEventGroupWaitBits(
       this->controlInputEvent,
@@ -67,6 +74,22 @@ void TouchScreen::run(){
     if(eventBit){
       xQueueReceive(this->xControlInputQueue, &xInput, 0);
       xQueueReceive(this->yControlInputQueue, &yInput, 0);
+
+      //Convert to degree and saturate
+      // uX = xController.controlLaw(statesX);   
+      uDegreeX = rad2deg(xInput);
+      saturate(&uDegreeX, -25, 25);
+      xInput = deg2rad(uDegreeX);
+
+      // uY = yController.controlLaw(statesY);   
+      uDegreeY = rad2deg(yInput);
+      saturate(&uDegreeY, -25, 25);
+      yInput = deg2rad(uDegreeY);
+
+      angleX = (uDegreeX) + servos.offset1;       
+      angleY = (uDegreeY) + servos.offset2;
+      // servos.moveServos(angleX, servos.offset2+90);
+      this->servos.moveServos(angleX , angleY);
 
       //Read touchScreen
       coords = this->getCoordinates();

@@ -1,6 +1,8 @@
 #ifndef TOUCHSCREEN_H
 #define TOUCHSCREEN_H
 
+#include "servoControl.h"
+#include "controller.h"
 /*
  * Library for interfacing with a 5-wire resistive touchScreen. 
  */
@@ -75,6 +77,8 @@ class TouchScreen{
     screenCoordinatesCm getCoordinatesCm(float xValue, float yValue);
     void setSamplingTime(int milliseconds);
     bool screenUpdated();
+    
+    ServoControl servos;
 
 
     //RTOS

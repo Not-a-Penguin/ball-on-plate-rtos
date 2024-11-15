@@ -35,6 +35,7 @@ void Controller::run(){
   while(1){
     //Wait for states 
     if(xQueueReceive(this->statesQueue, &states, portMAX_DELAY)){
+      
       float controlInput = this->controlLaw(states);
 
       //Send to touchScreenQueue
