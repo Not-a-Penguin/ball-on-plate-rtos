@@ -3,6 +3,7 @@
 
 #include <BasicLinearAlgebra.h>
 #include "touchScreen.h"
+#include "events.h"
 using namespace BLA;
 
 class KalmanFilter{
@@ -41,8 +42,8 @@ class KalmanFilter{
     float qValue1, 
     float qValue2, 
     float rValue,
-    QueueHandle_t inputOutputQueue,
-    QueueHandle_t statesQueue,
+    QueueHandle_t *inputOutputQueue,
+    QueueHandle_t *statesQueue,
     char* taskName
   );
 
@@ -55,8 +56,8 @@ class KalmanFilter{
   static void kfTask(void* params);
   void start();
   void run();
-  QueueHandle_t inputOutputQueue;
-  QueueHandle_t statesQueue;
+  QueueHandle_t *inputOutputQueue;
+  QueueHandle_t *statesQueue;
 
 };
 

@@ -3,6 +3,7 @@
 
 #include "servoControl.h"
 #include "controller.h"
+#include "events.h"
 /*
  * Library for interfacing with a 5-wire resistive touchScreen. 
  */
@@ -52,7 +53,9 @@ class TouchScreen{
     //ADC
     //The middle pin of the display which corresponds to the analog value of the voltage divider when there
     //is a voltage gradient in the screen
-    int _sensorPin; 
+    int _sensorPin;
+
+    char* taskName;
 
   public:
 
@@ -62,15 +65,16 @@ class TouchScreen{
       int lowerLeft, 
       int lowerRight, 
       int sensorPin,
-      QueueHandle_t xInputQueue,
-      QueueHandle_t yInputQueue,
-      QueueHandle_t xInputOutputQueue,
-      QueueHandle_t yInputOutputQueue,
-      EventGroupHandle_t inputEventGroup,
+      QueueHandle_t *xInputQueue,
+      QueueHandle_t *yInputQueue,
+      QueueHandle_t *xInputOutputQueue,
+      QueueHandle_t *yInputOutputQueue,
+      EventGroupHandle_t *inputEventGroup,
       EventBits_t xIputEventBit,
-      EventBits_t yInputEventBit
+      EventBits_t yInputEventBit,
+      char* taskName
     );
-
+    
     ~TouchScreen();
 
     screenCoordinates getCoordinates();
@@ -84,14 +88,14 @@ class TouchScreen{
     //RTOS
 
     //To get info
-    QueueHandle_t xControlInputQueue;
-    QueueHandle_t yControlInputQueue;
+    QueueHandle_t *xControlInputQueue;
+    QueueHandle_t *yControlInputQueue;
 
-    QueueHandle_t xInputOutputQueue;
-    QueueHandle_t yInputOutputQueue;
+    QueueHandle_t *xInputOutputQueue;
+    QueueHandle_t *yInputOutputQueue;
 
     //Event
-    EventGroupHandle_t controlInputEvent;
+    EventGroupHandle_t *controlInputEvent;
     EventBits_t xIputEventBit;
     EventBits_t yInputEventBit;
 

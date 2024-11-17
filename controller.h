@@ -2,6 +2,7 @@
 #define CONTROLLER_H
 
 #include <BasicLinearAlgebra.h>
+#include "events.h"
 using namespace BLA;
 
 void saturate(float* input, float lowerLimit, float upperLimit);
@@ -16,20 +17,21 @@ class Controller{
 
   Controller(
     Matrix<1, systemOrder> gains,
-    QueueHandle_t statesQueue,
-    QueueHandle_t inputQueue, 
-    EventGroupHandle_t xEventGroup,
+    QueueHandle_t *statesQueue,
+    QueueHandle_t *inputQueue, 
+    EventGroupHandle_t *xEventGroup,
     EventBits_t inputEventBit,
-    char* taskName);
+    char* taskName
+  );
 
   ~Controller();
   float controlLaw(Matrix<systemOrder, 1> currentState);
 
   //RTOS
-  QueueHandle_t statesQueue;
-  QueueHandle_t inputQueue;
+  QueueHandle_t *statesQueue;
+  QueueHandle_t *inputQueue;
   EventBits_t inputEventBit;
-  EventGroupHandle_t xEventGroup;
+  EventGroupHandle_t *xEventGroup;
   static void controllerTask(void* params);
   void run();
   void start();
