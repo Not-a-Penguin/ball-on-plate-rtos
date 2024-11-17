@@ -9,13 +9,14 @@ TouchScreen::TouchScreen(
   int lowerLeft, 
   int lowerRight, 
   int sensorPin,
-  QueueHandle_t xInputQueue,
-  QueueHandle_t yInputQueue,
-  QueueHandle_t xInputOutputQueue,
-  QueueHandle_t yInputOutputQueue,
-  EventGroupHandle_t inputEventGroup,
+  QueueHandle_t *xInputQueue,
+  QueueHandle_t *yInputQueue,
+  QueueHandle_t *xInputOutputQueue,
+  QueueHandle_t *yInputOutputQueue,
+  EventGroupHandle_t *inputEventGroup,
   EventBits_t xIputEventBit,
-  EventBits_t yInputEventBit
+  EventBits_t yInputEventBit,
+  char* taskName
 ) : servos(23, 19) {
 
   //Set the pins according to the corners of the screen
@@ -35,9 +36,12 @@ TouchScreen::TouchScreen(
 
   this->xControlInputQueue = xInputQueue;
   this->yControlInputQueue = yInputQueue;
+  this->xInputOutputQueue = xInputOutputQueue;
+  this->yInputOutputQueue = yInputOutputQueue;
   this->controlInputEvent = inputEventGroup;
   this->xIputEventBit = xIputEventBit;
   this->yInputEventBit = yInputEventBit;
+  this->taskName = taskName;
   
 };
 
@@ -46,34 +50,38 @@ TouchScreen::~TouchScreen(){/*
 */}
 
 void TouchScreen::run(){
+  screenCoordinates coords;
+  screenCoordinatesCm coordsCm;
+
+  inputAndOutput xInputOutput;
+  inputAndOutput yInputOutput;
+
+  float xInput;
+  float yInput;
+
+  float uDegreeX;
+  float uDegreeY;
+  float angleX;
+  float angleY;
 
   while(1){
-
-    screenCoordinates coords;
-    screenCoordinatesCm coordsCm;
-
-    inputAndOutput xInputOutput;
-    inputAndOutput yInputOutput;
-
-    float xInput;
-    float yInput;
-
-    float uDegreeX;
-    float uDegreeY;
-    float angleX;
-    float angleY;
-
     //Wait for control input to be updated
     EventBits_t eventBit = xEventGroupWaitBits(
-      this->controlInputEvent,
+      *(this->controlInputEvent),
       (this->yInputEventBit | this->xIputEventBit), 
       pdTRUE, 
       pdTRUE, 
       portMAX_DELAY);
 
     if(eventBit){
-      xQueueReceive(this->xControlInputQueue, &xInput, 0);
-      xQueueReceive(this->yControlInputQueue, &yInput, 0);
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
+
+      if(xQueueReceive(*(this->xControlInputQueue), &xInput, 0) == pdFALSE) {
+        xInput = 0.0;
+      }
+      if(xQueueReceive(*(this->yControlInputQueue), &yInput, 0) == pdFALSE) {
+        yInput = 0.0;
+      };
 
       //Convert to degree and saturate
       // uX = xController.controlLaw(statesX);   
@@ -102,23 +110,27 @@ void TouchScreen::run(){
       yInputOutput.output = yInput;
 
       //Send x data to x queue
-      xQueueSend(this->xInputOutputQueue, &xInputOutput, portMAX_DELAY);
+      xQueueSend(*(this->xInputOutputQueue), &xInputOutput, portMAX_DELAY);
 
       //Send y data to y queue
-      xQueueSend(this->yInputOutputQueue, &yInputOutput, portMAX_DELAY);
+      xQueueSend(*(this->yInputOutputQueue), &yInputOutput, portMAX_DELAY);
+
+//      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
     }
   }
 
 }
 
 void TouchScreen::start(){
-  xTaskCreate(
+  xTaskCreatePinnedToCore(
     tsTask, 
-    "TouchScreenTask", 
-    3000,
+    this->taskName, 
+    6000,
     this, 
     tskIDLE_PRIORITY, 
-    NULL);
+    NULL,
+    0
+  );
 }
 
 void TouchScreen::tsTask(void *params){

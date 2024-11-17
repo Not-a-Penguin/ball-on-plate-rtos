@@ -1,8 +1,8 @@
 #include "freertos/portmacro.h"
 #include "controller.h"
 
-Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t statesQueue, QueueHandle_t inputQueue,
-                       EventGroupHandle_t xEventGroup, EventBits_t inputEventBit, char* taskName){
+Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t *statesQueue, QueueHandle_t *inputQueue,
+                       EventGroupHandle_t *xEventGroup, EventBits_t inputEventBit, char* taskName){
    this->K = gains;
    this->statesQueue = statesQueue;
    this->inputQueue = inputQueue;
@@ -34,24 +34,34 @@ void Controller::run(){
 
   while(1){
     //Wait for states 
-    if(xQueueReceive(this->statesQueue, &states, portMAX_DELAY)){
+    if(xQueueReceive(*(this->statesQueue), &states, portMAX_DELAY)){
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
+      long timeBeforeMpc = micros();
       
       float controlInput = this->controlLaw(states);
 
-      //Send to touchScreenQueue
-      xQueueSend(this->inputQueue, &controlInput, portMAX_DELAY);
+      //Send to touchScreenQueue -> send
+      xQueueSend(*(this->inputQueue), &controlInput, portMAX_DELAY);
       // xEvent
-      xEventGroupSetBits(this->xEventGroup, this->inputEventBit);
+      xEventGroupSetBits(*(this->xEventGroup), this->inputEventBit);
+
+      EventsHandler::MpcPayload payload;
+      payload.cost = 0; // TODO: change this value after MPC insertion
+      payload.computationTime = float(micros()-timeBeforeMpc)/1000.0; // conversion from micros to millis
+
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, nullptr, &payload);
     }
   }
 }
 
 void Controller::start(){
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
     controllerTask, 
     this->taskName, 
-    3000,
+    6000,
     this, 
     tskIDLE_PRIORITY+2, 
-    NULL);
+    NULL,
+    0
+  );
 }

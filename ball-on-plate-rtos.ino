@@ -2,6 +2,9 @@
 #include "kalmanFilter.h"
 #include "controller.h"
 #include "stateSpaceMatrices.h"
+#include "events.h"
+
+long failedMessageCounter;
 
 //Struct to hold both states and control input -> goes to Kalman Filter
 struct statesInput{
@@ -21,6 +24,9 @@ QueueHandle_t xInputOutputQueue;
 QueueHandle_t yStatesQueue;
 QueueHandle_t yControlInputQueue;
 QueueHandle_t yInputOutputQueue;
+
+// Events Queue
+QueueHandle_t eventsQueue;
 
 //Event for when both X and Y control inputs are updated
 EventGroupHandle_t controlInputEvent;
@@ -46,26 +52,25 @@ depends on statesQueue
 */
 
 TouchScreen ts(27, 26, 32, 33, 25, 
-  xControlInputQueue,
-  yControlInputQueue,
-  xInputOutputQueue,
-  yInputOutputQueue,
-  controlInputEvent,
+  &xControlInputQueue,
+  &yControlInputQueue,
+  &xInputOutputQueue,
+  &yInputOutputQueue,
+  &controlInputEvent,
   xControlInputBitReady,
-  yControlInputBitReady
+  yControlInputBitReady,
+  "TouchScreenTask"
 );
-
-//TODO: pass custom task name to class to differ between x and y
 
 Matrix<1,2> hInfSatGains = {17.8954, 10.0515};
 Matrix<1,2> lqrGains = {8.4460, 8.7225}; 
 Matrix<1, 2> poleGains = {2.0527, 1.8320};
 
-KalmanFilter xFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, xInputOutputQueue, xStatesQueue, "xFilterTask");
-KalmanFilter yFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, yInputOutputQueue, yStatesQueue, "yFilterTask");
+KalmanFilter xFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, &xInputOutputQueue, &xStatesQueue, "xFilterTask");
+KalmanFilter yFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, &yInputOutputQueue, &yStatesQueue, "yFilterTask");
 
-Controller xController(poleGains, xStatesQueue, xControlInputQueue, controlInputEvent,  xControlInputBitReady, "xControllerTask");
-Controller yController(poleGains, yStatesQueue, yControlInputQueue, controlInputEvent, yControlInputBitReady, "yControllerTask");
+Controller xController(poleGains, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
+Controller yController(poleGains, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
 
 void setup(){
 
@@ -82,7 +87,23 @@ void setup(){
   xInputOutputQueue = xQueueCreate(1, sizeof(inputAndOutput));
   yInputOutputQueue = xQueueCreate(1, sizeof(inputAndOutput));
 
+  eventsQueue = xQueueCreate(20, sizeof(EventsHandler::EventsMessage));
+
   controlInputEvent = xEventGroupCreate();
+  xEventGroupSetBits(controlInputEvent, xControlInputBitReady);
+  xEventGroupSetBits(controlInputEvent, yControlInputBitReady);
+
+  // TODO: initialize first value for the controller variables
+
+  xTaskCreatePinnedToCore(
+    EventsHandler::sendEventsToSerial, 
+    "sendEventsTask", 
+    6000,
+    (void*) 20, 
+    tskIDLE_PRIORITY, 
+    NULL,
+    0
+  );
 
   ts.start();
 

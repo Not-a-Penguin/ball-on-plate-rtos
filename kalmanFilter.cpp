@@ -3,7 +3,8 @@
 
 static const int systemOrder = 2;
 
-KalmanFilter::KalmanFilter(Matrix<systemOrder, systemOrder> A, Matrix<systemOrder,1> B, Matrix<1, systemOrder> C, float qValue1, float qValue2, float rValue, QueueHandle_t inputOutputQueue, QueueHandle_t statesQueue, char* taskName){
+KalmanFilter::KalmanFilter(Matrix<systemOrder, systemOrder> A, Matrix<systemOrder,1> B, Matrix<1, systemOrder> C, float qValue1, float qValue2, float rValue, 
+                           QueueHandle_t *inputOutputQueue, QueueHandle_t *statesQueue, char* taskName){
   
   this->A = A;
   this->B = B;
@@ -34,14 +35,17 @@ void KalmanFilter::run(){
   while(1){
 
     //Wait for inputOutputQueue
-    if(xQueueReceive(this->inputOutputQueue, &inputOutput, portMAX_DELAY)){
+    if(xQueueReceive(*(this->inputOutputQueue), &inputOutput, portMAX_DELAY)){
+      Serial.println("in kalman");
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
       //Filter and estimate
       float position = inputOutput.input * 0.01; //meter
       float controlInput = inputOutput.output;
       Matrix<systemOrder,1> states = this->kalman(controlInput, position);
 
       //Send data to controllerQueue
-      xQueueSend(this->statesQueue, &states, portMAX_DELAY);
+      xQueueSend(*(this->statesQueue), &states, portMAX_DELAY);
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
     };
 
   }
@@ -49,13 +53,15 @@ void KalmanFilter::run(){
 }
 
 void KalmanFilter::start(){
-  xTaskCreate(
+  xTaskCreatePinnedToCore(
     kfTask, 
     this->taskName, 
-    3000,
+    6000,
     this, 
     tskIDLE_PRIORITY+1, 
-    NULL);
+    NULL,
+    0
+  );
 }
 
 Matrix<systemOrder, 1> KalmanFilter::kalman(float input, float output){
@@ -75,7 +81,6 @@ Matrix<systemOrder, 1> KalmanFilter::kalman(float input, float output){
 };
 
 float KalmanFilter::getPTrace(){
-
   float trace = P_hat(0) + P_hat(2);
 
   return trace;
