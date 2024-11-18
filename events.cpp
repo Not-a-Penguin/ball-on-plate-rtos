@@ -1,5 +1,7 @@
 #include "events.h"
 
+//#define DEBUG_EVENT // uncomment to enable human readable events
+
 namespace EventsHandler {
 
 void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload, MpcPayload* mpcPayload) {
@@ -26,25 +28,51 @@ void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload, Mp
 }
 
 void sendEventsToSerial(void* parameters) {
-    EventsMessage message;
     int delayInMillis = int(parameters);
-
-    long before = 0;
+    
+    EventsMessage message;
+    #ifdef DEBUG_EVENT
+    volatile long before = 0;
     bool sent = false;
+    int counter = 0;
+    #endif
     for(;;) {
-        before = micros();
-        while(xQueueReceive(eventsQueue, &message, 0)) {
-            sent = true;
-            Serial.print("taks name: "); // temporary
-            Serial.println(message.taskName); // temporary
-            Serial.write((byte*)&message, sizeof(EventsMessage));
-            Serial.println();
+        
+        if(xQueueReceive(eventsQueue, &message, ( TickType_t ) 0)) {
+            #ifdef DEBUG_EVENT
+            before = micros();
+            counter = 0;
+            #endif
+            do {
+                #ifdef DEBUG_EVENT
+                sent = true;
+                Serial.print("taks name/type: "); // temporary
+                Serial.print(message.taskName); // temporary
+                Serial.print("/"); // temporary
+                Serial.println(message.type == EventType::START? "START":"END"); // temporary
+                counter++;
+                #endif
+
+                #ifndef DEBUG_EVENT
+                Serial.write((byte*)&message, sizeof(EventsMessage));
+                Serial.println();
+                #endif
+            
+            } while(xQueueReceive(eventsQueue, &message, ( TickType_t ) 0));
         }
+
+        #ifdef DEBUG_EVENT
         if(sent){
             Serial.print("time to sent: ");
-            Serial.println(micros()-before);
+            Serial.print(micros()-before);
+            Serial.print(" counter: ");
+            Serial.print(counter);
+            Serial.print(" error: ");
+            Serial.println(failedMessageCounter);
             sent = false;
         }
+        #endif
+
         vTaskDelay(pdMS_TO_TICKS(delayInMillis));
     }
 }
