@@ -7,7 +7,7 @@
 // TODO: handle filter and controller information
 
 extern QueueHandle_t eventsQueue;
-extern long failedMessageCounter;
+extern uint16_t failedMessageCounter;
 
 namespace EventsHandler{
 
@@ -30,19 +30,19 @@ struct FilterPayload {
 struct MpcPayload {
     float u;
     float cost;
-    unsigned long computationTime; // ms
+    uint32_t computationTime; // ms
 };
 
 struct EventsMessage {
     char *taskName;
     EventType type;
-    unsigned long time; // ms
+    uint32_t time; // ms
     PayloadType payloadType;
     union {
         FilterPayload filter;
         MpcPayload mpc;
     } payload;
-    long failedMessages; 
+    uint16_t failedMessages; 
 };
 
 void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload = nullptr, MpcPayload* mpcPayload = nullptr);
