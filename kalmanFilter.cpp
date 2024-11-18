@@ -36,16 +36,15 @@ void KalmanFilter::run(){
 
     //Wait for inputOutputQueue
     if(xQueueReceive(*(this->inputOutputQueue), &inputOutput, portMAX_DELAY)){
-      Serial.println("in kalman");
       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
       //Filter and estimate
       float position = inputOutput.input * 0.01; //meter
       float controlInput = inputOutput.output;
       Matrix<systemOrder,1> states = this->kalman(controlInput, position);
 
-      //Send data to controllerQueue
-      xQueueSend(*(this->statesQueue), &states, portMAX_DELAY);
+      //Send data to controllerQueue and end task
       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
+      xQueueSend(*(this->statesQueue), &states, portMAX_DELAY);
     };
 
   }

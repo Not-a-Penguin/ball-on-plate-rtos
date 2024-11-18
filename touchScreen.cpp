@@ -109,13 +109,12 @@ void TouchScreen::run(){
       yInputOutput.input = coords.y;
       yInputOutput.output = yInput;
 
+      // End Task
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
       //Send x data to x queue
       xQueueSend(*(this->xInputOutputQueue), &xInputOutput, portMAX_DELAY);
-
-      //Send y data to y queue
+      //Send y data to y queue and 
       xQueueSend(*(this->yInputOutputQueue), &yInputOutput, portMAX_DELAY);
-
-//      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
     }
   }
 
