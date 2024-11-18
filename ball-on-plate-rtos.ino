@@ -4,7 +4,7 @@
 #include "stateSpaceMatrices.h"
 #include "events.h"
 
-long failedMessageCounter;
+uint16_t failedMessageCounter;
 
 //Struct to hold both states and control input -> goes to Kalman Filter
 struct statesInput{
@@ -98,14 +98,18 @@ void setup(){
   xTaskCreatePinnedToCore(
     EventsHandler::sendEventsToSerial, 
     "sendEventsTask", 
-    6000,
-    (void*) 20, 
+    10000,
+    (void*) 10, 
     tskIDLE_PRIORITY, 
     NULL,
     0
   );
 
   ts.start();
+  xFilter.start();
+  yFilter.start();
+  xController.start();
+  yController.start();
 
 }
 
