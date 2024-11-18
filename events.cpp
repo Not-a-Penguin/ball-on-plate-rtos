@@ -6,9 +6,9 @@ namespace EventsHandler {
 
 void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload, MpcPayload* mpcPayload) {
     EventsMessage message;
-    message.taskName = taskName;
+    strncpy(&message.taskName[0], taskName, 32);
     message.type = event;
-    message.time = xTaskGetTickCount() * (1000/configTICK_RATE_HZ);
+    message.time = millis(); // xTaskGetTickCount() * portTICK_PERIOD_MS;
     message.payloadType = PayloadType::NONE;
     message.failedMessages = failedMessageCounter;
     
@@ -55,7 +55,8 @@ void sendEventsToSerial(void* parameters) {
 
                 #ifndef DEBUG_EVENT
                 Serial.write((byte*)&message, sizeof(EventsMessage));
-                Serial.println();
+                Serial.write('\r');
+                Serial.write('\n');
                 #endif
             
             } while(xQueueReceive(eventsQueue, &message, ( TickType_t ) 0));

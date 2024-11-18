@@ -34,7 +34,7 @@ struct MpcPayload {
 };
 
 struct EventsMessage {
-    char *taskName;
+    char taskName[32];
     EventType type;
     uint32_t time; // ms
     PayloadType payloadType;
