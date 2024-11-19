@@ -2,10 +2,10 @@
 static const int systemOrder = 2;
 
 struct ss{
-  Matrix<systemOrder,systemOrder> A;
-  Matrix<systemOrder,1> B;
-  Matrix<1,systemOrder> C;
-  Matrix<1,1> D;
+  BLA::Matrix<systemOrder,systemOrder> A;
+  BLA::Matrix<systemOrder,1> B;
+  BLA::Matrix<1,systemOrder> C;
+  BLA::Matrix<1,1> D;
 };
 
 //Ts = 35ms
