@@ -69,8 +69,8 @@ Matrix<1, 2> poleGains = {2.0527, 1.8320};
 KalmanFilter xFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, &xInputOutputQueue, &xStatesQueue, "xFilterTask");
 KalmanFilter yFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, &yInputOutputQueue, &yStatesQueue, "yFilterTask");
 
-Controller xController(poleGains, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
-Controller yController(poleGains, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
+Controller xController(hInfSatGains, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
+Controller yController(hInfSatGains, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
 
 void setup(){
 
@@ -95,16 +95,18 @@ void setup(){
 
   // TODO: initialize first value for the controller variables
 
-  xTaskCreatePinnedToCore(
-    EventsHandler::sendEventsToSerial, 
-    "sendEventsTask", 
-    10000,
-    (void*) 10, 
-    tskIDLE_PRIORITY, 
-    NULL,
-    0
-  );
+//  xTaskCreatePinnedToCore(
+//    EventsHandler::sendEventsToSerial, 
+//    "sendEventsTask", 
+//    10000,
+//    (void*) 10, 
+//    tskIDLE_PRIORITY+1, 
+//    NULL,
+//    0
+//  );
 
+  
+  ts.setSamplingTime(35);
   ts.start();
   xFilter.start();
   yFilter.start();

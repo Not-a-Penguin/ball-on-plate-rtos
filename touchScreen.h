@@ -34,7 +34,7 @@ class TouchScreen{
     void setPins();
 
     //variables for calculating when the screen should be read
-    int _interval= 30; //in milliseconds -> can be set in setScreenDelay()
+    int _interval; //in milliseconds -> can be set in setScreenDelay()
     unsigned long _previousMillis = 0;
 
     screenCoordinates _currentScreenCoordinates;
@@ -54,6 +54,8 @@ class TouchScreen{
     //The middle pin of the display which corresponds to the analog value of the voltage divider when there
     //is a voltage gradient in the screen
     int _sensorPin;
+
+    TickType_t xLastWakeTime;
 
     char* taskName;
 
@@ -78,7 +80,9 @@ class TouchScreen{
     ~TouchScreen();
 
     screenCoordinates getCoordinates();
-    screenCoordinatesCm getCoordinatesCm(float xValue, float yValue);
+//    screenCoordinatesCm getCoordinatesCm(float xValue, float yValue);
+    float getCoordinatesCmX(float xValue);
+    float getCoordinatesCmY(float yValue);
     void setSamplingTime(int milliseconds);
     bool screenUpdated();
     

@@ -42,7 +42,6 @@ TouchScreen::TouchScreen(
   this->xIputEventBit = xIputEventBit;
   this->yInputEventBit = yInputEventBit;
   this->taskName = taskName;
-  
 };
 
 TouchScreen::~TouchScreen(){/* 
@@ -64,16 +63,23 @@ void TouchScreen::run(){
   float angleX;
   float angleY;
 
+
+  // Initialise the xLastWakeTime variable with the current time.
+
+  this->xLastWakeTime = xTaskGetTickCount();
+
   while(1){
     //Wait for control input to be updated
     EventBits_t eventBit = xEventGroupWaitBits(
       *(this->controlInputEvent),
       (this->yInputEventBit | this->xIputEventBit), 
+//      (this->xIputEventBit), 
       pdTRUE, 
       pdTRUE, 
       portMAX_DELAY);
 
     if(eventBit){
+//      long before = micros();
       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
 
       if(xQueueReceive(*(this->xControlInputQueue), &xInput, 0) == pdFALSE) {
@@ -100,21 +106,19 @@ void TouchScreen::run(){
       this->servos.moveServos(angleX , angleY);
 
       //Read touchScreen
-      coords = this->getCoordinates();
-      coordsCm = this->getCoordinatesCm(coords.x, coords.y);
-
-      xInputOutput.input = coords.x;
+      coords.x = this->readCoordinate("x");
+      xInputOutput.input = this->getCoordinatesCmX(coords.x);
       xInputOutput.output = xInput;
-
-      yInputOutput.input = coords.y;
-      yInputOutput.output = yInput;
-
-      // End Task
-      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
-      //Send x data to x queue
       xQueueSend(*(this->xInputOutputQueue), &xInputOutput, portMAX_DELAY);
-      //Send y data to y queue and 
+
+      coords.y = this->readCoordinate("y");
+      yInputOutput.input = -this->getCoordinatesCmY(coords.y);
+      yInputOutput.output = yInput;
       xQueueSend(*(this->yInputOutputQueue), &yInputOutput, portMAX_DELAY);
+
+//      Serial.printf("x:%f,y:%f\n", coordsCm.xCm, -coordsCm.yCm);
+
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
     }
   }
 
@@ -126,7 +130,7 @@ void TouchScreen::start(){
     this->taskName, 
     6000,
     this, 
-    tskIDLE_PRIORITY, 
+    tskIDLE_PRIORITY+4, 
     NULL,
     0
   );
@@ -138,15 +142,6 @@ void TouchScreen::tsTask(void *params){
   self->run();
 
 }
-
-screenCoordinates TouchScreen::getCoordinates(){ 
-
-  this->_currentScreenCoordinates.x = this->readCoordinate("x");
-  this->_currentScreenCoordinates.y = this->readCoordinate("y");
-  this->_newReading = true;
-
-  return this->_currentScreenCoordinates; 
-};
 
 int TouchScreen::readCoordinate(String coordinate){
 
@@ -176,18 +171,44 @@ int TouchScreen::readCoordinate(String coordinate){
   }
   
   // delay(this->_interval);
-  vTaskDelay(pdMS_TO_TICKS(this->_interval));
-  return analogRead(this->_sensorPin);
+  if(coordinate == "x") {
+//    vTaskDelay(pdMS_TO_TICKS(this->_interval));
+    vTaskDelayUntil(&this->xLastWakeTime, this->_interval*2);
+  }
+  if(coordinate == "y") {
+    vTaskDelay(pdMS_TO_TICKS(this->_interval));
+//    vTaskDelayUntil(&this->xLastWakeTime, this->_interval*2);
+  }
+  
+
+  float reading = analogRead(this->_sensorPin);
+
+  if(coordinate != "x"){
+    digitalWrite(this->_lowerLeftPin, HIGH);
+    digitalWrite(this->_upperRightPin, LOW);
+  }
+  
+  else if(coordinate != "y"){
+    digitalWrite(this->_lowerLeftPin, LOW);
+    digitalWrite(this->_upperRightPin, HIGH); 
+  }
+  
+  return reading;
 };
 
-screenCoordinatesCm TouchScreen::getCoordinatesCm(float xValue, float yValue){
+float TouchScreen::getCoordinatesCmX(float xValue){
 
-  this->_currentScreenCoordiantesCm.xCm = 1.6298789841486278e-002 * xValue - 3.0054968467700697e+001 + 0.4;
-  this->_currentScreenCoordiantesCm.yCm = 1.2133349039934032e-002 * yValue - 2.4024031099069383e+001 + 0.2 ;
-
-  return this->_currentScreenCoordiantesCm;
+  return 1.6298789841486278e-002 * xValue - 3.0054968467700697e+001 + 0.4 - 0.1;;
   
 };
+
+float TouchScreen::getCoordinatesCmY(float yValue){
+
+  return 1.2133349039934032e-002 * yValue - 2.4024031099069383e+001 + 0.2 + 0.2;
+  
+};
+
+
 
 bool TouchScreen::screenUpdated(){
   if(this->_newReading == true){
@@ -197,7 +218,7 @@ bool TouchScreen::screenUpdated(){
 }
 
 void TouchScreen::setSamplingTime(int milliseconds){
-  this->_interval = milliseconds >> 1;  
+  this->_interval = milliseconds >> 1;
 };
 
 void TouchScreen::setPins(){

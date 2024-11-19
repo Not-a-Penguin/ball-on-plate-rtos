@@ -1,6 +1,6 @@
 #include "events.h"
 
-//#define DEBUG_EVENT // uncomment to enable human readable events
+#define DEBUG_EVENT // uncomment to enable human readable events
 
 namespace EventsHandler {
 

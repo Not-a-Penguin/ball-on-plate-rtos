@@ -17,9 +17,9 @@ class ServoControl{
 
     //Initial position of the servos
 //    float offset1 = 79.8;
-    float offset1 = 80.5;
+    float offset1 = 95.0;
 //    float offset1 = 80;
-    float offset2 = 79;
+    float offset2 = 71.0;
     
   private:
 

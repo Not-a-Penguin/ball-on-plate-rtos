@@ -1,5 +1,6 @@
 #include "freertos/portmacro.h"
 #include "kalmanFilter.h"
+#include "servoControl.h"
 
 static const int systemOrder = 2;
 
@@ -42,9 +43,14 @@ void KalmanFilter::run(){
       float controlInput = inputOutput.output;
       Matrix<systemOrder,1> states = this->kalman(controlInput, position);
 
+//      Serial.println(this->taskName);
+//      Serial.println(inputOutput.input); // x
+//      Serial.println(inputOutput.output); //u
+
       //Send data to controllerQueue and end task
-      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
+//      Serial.printf("x:%f,x1:%f,x2:%f,u:%f\n", position*100, states(0)*100, states(1), rad2deg(controlInput));
       xQueueSend(*(this->statesQueue), &states, portMAX_DELAY);
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END);
     };
 
   }
@@ -57,7 +63,7 @@ void KalmanFilter::start(){
     this->taskName, 
     6000,
     this, 
-    tskIDLE_PRIORITY+1, 
+    tskIDLE_PRIORITY+3, 
     NULL,
     0
   );

@@ -1,5 +1,6 @@
 #include "freertos/portmacro.h"
 #include "controller.h"
+#include "servoControl.h"
 
 Controller::Controller(Matrix<1, systemOrder> gains, QueueHandle_t *statesQueue, QueueHandle_t *inputQueue,
                        EventGroupHandle_t *xEventGroup, EventBits_t inputEventBit, char* taskName){
@@ -35,7 +36,7 @@ void Controller::run(){
   while(1){
     //Wait for states 
     if(xQueueReceive(*(this->statesQueue), &states, portMAX_DELAY)){
-      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
+       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
       long timeBeforeMpc = micros();
       
       float controlInput = this->controlLaw(states);
@@ -49,7 +50,7 @@ void Controller::run(){
       payload.cost = 0; // TODO: change this value after MPC insertion
       payload.computationTime = float(micros()-timeBeforeMpc)/1000.0; // conversion from micros to millis
 
-      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, nullptr, &payload);
+       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, nullptr, &payload);
     }
   }
 }
