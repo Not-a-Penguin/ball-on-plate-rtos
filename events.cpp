@@ -4,6 +4,18 @@
 
 namespace EventsHandler {
 
+void vTaskDelayWithEvent(char* taskName, const TickType_t xTimeIncrement) {
+    sendEvent(taskName, EventType::BLOCKED);
+    vTaskDelay(xTimeIncrement);
+    sendEvent(taskName, EventType::RESUMED);
+}
+
+void vTaskDelayUntilWithEvent(char* taskName, TickType_t *pxPreviousWakeTime, const TickType_t xTimeIncrement ) {
+    sendEvent(taskName, EventType::BLOCKED);
+    vTaskDelayUntil(pxPreviousWakeTime, xTimeIncrement);
+    sendEvent(taskName, EventType::RESUMED);
+}
+
 void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload, MpcPayload* mpcPayload) {
     EventsMessage message;
     strncpy(&message.taskName[0], taskName, 32);
@@ -46,10 +58,30 @@ void sendEventsToSerial(void* parameters) {
             do {
                 #ifdef DEBUG_EVENT
                 sent = true;
-                Serial.print("taks name/type: "); // temporary
-                Serial.print(message.taskName); // temporary
-                Serial.print("/"); // temporary
-                Serial.println(message.type == EventType::START? "START":"END"); // temporary
+//                Serial.print("taks name/type/time: "); // temporary
+//                Serial.print(message.taskName); // temporary
+//                Serial.print("/"); // temporary
+                char type[10];
+                switch (message.type) {
+                  case EventType::START:
+                    strcpy(&type[0], "START");
+                    break;
+                  case EventType::BLOCKED:
+                    strcpy(&type[0], "BLOCKED");
+                    break;
+                  case EventType::RESUMED:
+                    strcpy(&type[0], "RESUMED");
+                    break;
+                  case EventType::END:
+                    strcpy(&type[0], "END");
+                    break;
+                }
+//                Serial.printf(message.type == EventType::START? "START":"END"); // temporary
+//                Serial.print("/");
+//                Serial.println(message.time);
+
+                Serial.printf("taks name/type/time: %s/%s/%ld\n", message.taskName, type, message.time);
+                
                 counter++;
                 #endif
 

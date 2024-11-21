@@ -11,8 +11,11 @@ extern uint16_t failedMessageCounter;
 
 namespace EventsHandler{
 
+
 enum EventType {
     START,
+    BLOCKED,
+    RESUMED,
     END
 };
 
@@ -45,6 +48,8 @@ struct EventsMessage {
     uint16_t failedMessages; 
 };
 
+void vTaskDelayWithEvent(char* taskName, const TickType_t xTimeIncrement);
+void vTaskDelayUntilWithEvent(char* TaskName, TickType_t *pxPreviousWakeTime, const TickType_t xTimeIncrement);
 void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload = nullptr, MpcPayload* mpcPayload = nullptr);
 void sendEventsToSerial(void* parameters);
 
