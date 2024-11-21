@@ -1,24 +1,24 @@
 
 #include "servoControl.h"
 
-ServoControl::ServoControl(int servo1Pin, int servo2Pin){
-  this->servo1.attach(servo1Pin);
-  this->servo2.attach(servo2Pin);
+ServoControl::ServoControl(int servoPin){
+  this->servo.attach(servoPin);
 }
 
 ServoControl::~ServoControl(){/* :^) */}
 
 void ServoControl::startPosition(){
-  this->moveServos(this->offset1, this->offset2);
+  this->moveServo(this->offset);
 }
 
-void ServoControl::moveServos(int angle1, int angle2){
+void ServoControl::moveServo(int angle){
   
-  this->checkAngleSafety(&angle1);
-  this->checkAngleSafety(&angle2);
+  this->checkAngleSafety(&angle);
+  this->servo.write(angle);
+}
 
-  this->servo1.write(angle1);
-  this->servo2.write(angle2);
+void ServoControl::setOffset(int offset) {
+  this->offset = offset;
 }
 
 void ServoControl::checkAngleSafety(int* angle){
