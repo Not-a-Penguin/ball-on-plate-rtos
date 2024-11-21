@@ -1,9 +1,10 @@
 #include "freertos/portmacro.h"
 #include "controller.h"
-#include "servoControl.h"
+#include <iostream>
 
-Controller::Controller(BLA::Matrix<1, systemOrder> gains, QueueHandle_t *statesQueue, QueueHandle_t *inputQueue,
+Controller::Controller(ServoControl *servo, BLA::Matrix<1, systemOrder> gains, QueueHandle_t *statesQueue, QueueHandle_t *inputQueue,
                        EventGroupHandle_t *xEventGroup, EventBits_t inputEventBit, char* taskName){
+  this->servo = servo;
   this->controllerType = ControllerType::STATE_FEEDBACK;
   this->K = gains;
   this->statesQueue = statesQueue;
@@ -13,10 +14,11 @@ Controller::Controller(BLA::Matrix<1, systemOrder> gains, QueueHandle_t *statesQ
   this->xEventGroup = xEventGroup;
 };
 
-Controller::Controller(BLA::Matrix<systemOrder, systemOrder> A, BLA::Matrix<systemOrder,1> B, 
+Controller::Controller(ServoControl *servo, BLA::Matrix<systemOrder, systemOrder> A, BLA::Matrix<systemOrder,1> B, 
                        tinytype Q_data[systemOrder], tinytype R_data[systemOrder],
                        QueueHandle_t *statesQueue, QueueHandle_t *inputQueue,
                        EventGroupHandle_t *xEventGroup, EventBits_t inputEventBit, char* taskName){
+  this->servo = servo;
   this->controllerType = ControllerType::MPC;
   this->statesQueue = statesQueue;
   this->inputQueue = inputQueue;
@@ -42,6 +44,17 @@ Controller::Controller(BLA::Matrix<systemOrder, systemOrder> A, BLA::Matrix<syst
   this->Q = Map<Matrix<tinytype, systemOrder, 1>>(Q_data);
   this->R = Map<Matrix<tinytype, 1, 1>>(R_data);
 
+  // this->x_min = tiny_MatrixNxNh::Constant(-30);
+  // this->x_max = tiny_MatrixNxNh::Constant(30);
+
+  this->x_min.block<1, NHORIZON>(0, 0) = tiny_Matrix1Nh::Constant(-15);  // x1 min
+  this->x_min.block<1, NHORIZON>(1, 0) = tiny_Matrix1Nh::Constant(-300); // x2 min
+  this->x_max.block<1, NHORIZON>(0, 0) = tiny_Matrix1Nh::Constant(15);   // x1 max
+  this->x_max.block<1, NHORIZON>(1, 0) = tiny_Matrix1Nh::Constant(300);  // x2 max
+
+  this->u_min = tiny_MatrixNuNhm1::Constant(-25);
+  this->u_max = tiny_MatrixNuNhm1::Constant(25);
+
   int status = tiny_setup(&this->solver,
                           Adyn, Bdyn, Q.asDiagonal(), R.asDiagonal(),
                           rho_value, systemOrder, 1, NHORIZON,
@@ -53,8 +66,10 @@ Controller::Controller(BLA::Matrix<systemOrder, systemOrder> A, BLA::Matrix<syst
   // Alias this->solver->work for brevity
   work = this->solver->work;
 
+  std::cout << x_min << std::endl;
+  std::cout << x_max << std::endl;
+
   // Reference
-  
   tiny_VectorNx ref;
   ref << 0.0, 0.0;
   work->Xref  << ref.replicate<1, NHORIZON>(); // TODO: check if this is really NHORIZON
@@ -102,10 +117,20 @@ void Controller::run(){
   while(1){
     //Wait for states 
     if(xQueueReceive(*(this->statesQueue), &states, portMAX_DELAY)){
-       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::START);
       long timeBeforeMpc = micros();
       
+      TickType_t xLastWakeTime = xTaskGetTickCount();
       float controlInput = this->controlLaw(states);
+      // vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS(this->_interval) );
+      if(this->taskName == "xControllerTask")
+        EventsHandler::vTaskDelayUntilWithEvent(this->taskName, &xLastWakeTime, pdMS_TO_TICKS(this->_interval)); // TODO: check if this is needed for the Y axis
+      
+      //Convert to degree and saturate
+      float uDegree = rad2deg(controlInput);
+      saturate(&uDegree, -25, 25);
+      float angle = (uDegree) + this->servo->getOffset();
+      this->servo->moveServo(angle);
 
       //Send to touchScreenQueue -> send
       xQueueSend(*(this->inputQueue), &controlInput, portMAX_DELAY);
@@ -113,10 +138,11 @@ void Controller::run(){
       xEventGroupSetBits(*(this->xEventGroup), this->inputEventBit);
 
       EventsHandler::MpcPayload payload;
+      payload.u = uDegree;
       payload.cost = 0; // TODO: change this value after MPC insertion
       payload.computationTime = float(micros()-timeBeforeMpc)/1000.0; // conversion from micros to millis
 
-       EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, nullptr, &payload);
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, nullptr, &payload);
     }
   }
 }
@@ -132,3 +158,7 @@ void Controller::start(){
     0
   );
 }
+
+void Controller::setSamplingTime(int milliseconds){
+  this->_interval = milliseconds >> 1;
+};
