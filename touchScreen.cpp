@@ -17,7 +17,7 @@ TouchScreen::TouchScreen(
   EventBits_t xIputEventBit,
   EventBits_t yInputEventBit,
   char* taskName
-) : servos(23, 19) {
+){
 
   //Set the pins according to the corners of the screen
   this->_upperLeftPin = upperLeft;
@@ -29,11 +29,8 @@ TouchScreen::TouchScreen(
   this->_sensorPin = sensorPin;
 
   this->setPins();
-
-  this->servos.startPosition();
-
+  
   //RTOS
-
   this->xControlInputQueue = xInputQueue;
   this->yControlInputQueue = yInputQueue;
   this->xInputOutputQueue = xInputOutputQueue;
@@ -91,19 +88,19 @@ void TouchScreen::run(){
 
       //Convert to degree and saturate
       // uX = xController.controlLaw(statesX);   
-      uDegreeX = rad2deg(xInput);
-      saturate(&uDegreeX, -25, 25);
-      xInput = deg2rad(uDegreeX);
+      // uDegreeX = rad2deg(xInput);
+      // saturate(&uDegreeX, -25, 25);
+      xInput = deg2rad(uDegreeX); // TODO: check if this is still needed
 
       // uY = yController.controlLaw(statesY);   
-      uDegreeY = rad2deg(yInput);
-      saturate(&uDegreeY, -25, 25);
-      yInput = deg2rad(uDegreeY);
+      // uDegreeY = rad2deg(yInput);
+      // saturate(&uDegreeY, -25, 25);
+      yInput = deg2rad(uDegreeY); // TODO: check if this is still needed
 
-      angleX = (uDegreeX) + servos.offset1;       
-      angleY = (uDegreeY) + servos.offset2;
+      // angleX = (uDegreeX) + servos.offset1;       
+      // angleY = (uDegreeY) + servos.offset2;
       // servos.moveServos(angleX, servos.offset2+90);
-      this->servos.moveServos(angleX , angleY);
+      // this->servos.moveServos(angleX , angleY);
 
       //Read touchScreen
       coords.x = this->readCoordinate("x");
@@ -172,12 +169,10 @@ int TouchScreen::readCoordinate(String coordinate){
   
   // delay(this->_interval);
   if(coordinate == "x") {
-//    vTaskDelay(pdMS_TO_TICKS(this->_interval));
-    vTaskDelayUntil(&this->xLastWakeTime, this->_interval*2);
+    EventsHandler::vTaskDelayUntilWithEvent(this->taskName, &this->xLastWakeTime, pdMS_TO_TICKS(this->_interval*2));
   }
   if(coordinate == "y") {
-    vTaskDelay(pdMS_TO_TICKS(this->_interval));
-//    vTaskDelayUntil(&this->xLastWakeTime, this->_interval*2);
+    EventsHandler::vTaskDelayWithEvent(this->taskName, pdMS_TO_TICKS(this->_interval));
   }
   
 

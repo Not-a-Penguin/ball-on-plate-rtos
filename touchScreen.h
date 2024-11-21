@@ -35,7 +35,6 @@ class TouchScreen{
 
     //variables for calculating when the screen should be read
     int _interval; //in milliseconds -> can be set in setScreenDelay()
-    unsigned long _previousMillis = 0;
 
     screenCoordinates _currentScreenCoordinates;
     screenCoordinatesCm _currentScreenCoordiantesCm;
@@ -85,12 +84,8 @@ class TouchScreen{
     float getCoordinatesCmY(float yValue);
     void setSamplingTime(int milliseconds);
     bool screenUpdated();
-    
-    ServoControl servos;
-
 
     //RTOS
-
     //To get info
     QueueHandle_t *xControlInputQueue;
     QueueHandle_t *yControlInputQueue;
