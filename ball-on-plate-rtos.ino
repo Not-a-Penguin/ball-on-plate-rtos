@@ -65,6 +65,9 @@ TouchScreen ts(27, 26, 32, 33, 25,
   "TouchScreenTask"
 );
 
+ServoControl ServoX(23);
+ServoControl ServoY(19);
+
 KalmanFilter xFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, &xInputOutputQueue, &xStatesQueue, "xFilterTask");
 KalmanFilter yFilter(sys.A, sys.B, sys.C, 0.01, 200, 150, &yInputOutputQueue, &yStatesQueue, "yFilterTask");
 
@@ -78,11 +81,11 @@ tinytype R_data[] = {1.0};
 #endif
 
 #ifndef USE_MPC
-Controller xController(hInfSatGains, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
-Controller yController(hInfSatGains, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
+Controller xController(&ServoX, hInfSatGains, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
+Controller yController(&ServoY, hInfSatGains, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
 #else
-Controller xController(sys.A, sys.B, Q_data, R_data, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
-Controller yController(sys.A, sys.B, Q_data, R_data, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
+Controller xController(&ServoX, sys.A, sys.B, Q_data, R_data, &xStatesQueue, &xControlInputQueue, &controlInputEvent,  xControlInputBitReady, "xControllerTask");
+Controller yController(&ServoY, sys.A, sys.B, Q_data, R_data, &yStatesQueue, &yControlInputQueue, &controlInputEvent, yControlInputBitReady, "yControllerTask");
 #endif
 
 void setup(){
@@ -100,7 +103,7 @@ void setup(){
   xInputOutputQueue = xQueueCreate(1, sizeof(inputAndOutput));
   yInputOutputQueue = xQueueCreate(1, sizeof(inputAndOutput));
 
-  eventsQueue = xQueueCreate(20, sizeof(EventsHandler::EventsMessage));
+  eventsQueue = xQueueCreate(25, sizeof(EventsHandler::EventsMessage));
 
   controlInputEvent = xEventGroupCreate();
   xEventGroupSetBits(controlInputEvent, xControlInputBitReady);
@@ -115,8 +118,16 @@ void setup(){
    NULL,
    0
  );
-  
+ 
+  ServoX.setOffset(95.0);
+  ServoY.setOffset(71.0);  
+  ServoX.startPosition();
+  ServoY.startPosition();
+
   ts.setSamplingTime(35);
+  xController.setSamplingTime(35);
+  yController.setSamplingTime(35);
+  
   ts.start();
   xFilter.start();
   yFilter.start();
