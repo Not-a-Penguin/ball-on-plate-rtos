@@ -8,6 +8,7 @@
 #define USE_MPC
 
 uint16_t failedMessageCounter;
+char sendEventsTaskName[15] = "sendEventsTask";
 
 //Struct to hold both states and control input -> goes to Kalman Filter
 struct statesInput{
@@ -111,7 +112,7 @@ void setup(){
 
  xTaskCreatePinnedToCore(
    EventsHandler::sendEventsToSerial, 
-   "sendEventsTask", 
+   sendEventsTaskName, 
    10000,
    (void*) 10, 
    tskIDLE_PRIORITY+1, 
@@ -133,6 +134,9 @@ void setup(){
   yFilter.start();
   xController.start();
   yController.start();
+
+  Serial.println("Headers");
+  Serial.printf("task_name,event_type,time,x1,x2,u,mpc_time,message_counter,message_failed\n");
 
 }
 

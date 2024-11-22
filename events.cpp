@@ -1,6 +1,7 @@
 #include "events.h"
 
-#define DEBUG_EVENT // uncomment to enable human readable events
+#define SEND_AS_STRING // uncomment to enable human readable events
+// #define DEBUG_EVENT
 
 namespace EventsHandler {
 
@@ -16,21 +17,22 @@ void vTaskDelayUntilWithEvent(char* taskName, TickType_t *pxPreviousWakeTime, co
     sendEvent(taskName, EventType::RESUMED);
 }
 
-void sendEvent(char* taskName, EventType event, FilterPayload* filterPayload, MpcPayload* mpcPayload) {
+void sendEvent(char* taskName, EventType event, PayloadType payloadType, MpcPayload* payloadMpc, SendTaskPayload* payloadSendTask) {
     EventsMessage message;
     strncpy(&message.taskName[0], taskName, 32);
     message.type = event;
     message.time = millis(); // xTaskGetTickCount() * portTICK_PERIOD_MS;
-    message.payloadType = PayloadType::NONE;
-    message.failedMessages = failedMessageCounter;
+    message.payloadType = payloadType;
     
-    if(filterPayload) {
-        message.payloadType = PayloadType::FILTER;
-        message.payload.filter = *filterPayload;
-    }
-    else if(mpcPayload) {
-        message.payloadType = PayloadType::MPC;
-        message.payload.mpc = *mpcPayload;
+    switch (payloadType)
+    {
+        case PayloadType::MPC:
+            message.payload.mpc = *payloadMpc;
+            break;
+        
+        case PayloadType::SEND_TASK:
+            message.payload.sendTask = *payloadSendTask;
+            break;
     }
 
     if(xQueueSend(eventsQueue, (void*) &message, 0) != pdPASS) {
@@ -43,67 +45,98 @@ void sendEventsToSerial(void* parameters) {
     int delayInMillis = int(parameters);
     
     EventsMessage message;
+    int counter = 0;
     #ifdef DEBUG_EVENT
     volatile long before = 0;
-    bool sent = false;
-    int counter = 0;
     #endif
+
     for(;;) {
         
-        if(xQueueReceive(eventsQueue, &message, ( TickType_t ) 0)) {
-            #ifdef DEBUG_EVENT
-            before = micros();
-            counter = 0;
-            #endif
-            do {
-                #ifdef DEBUG_EVENT
-                sent = true;
-//                Serial.print("taks name/type/time: "); // temporary
-//                Serial.print(message.taskName); // temporary
-//                Serial.print("/"); // temporary
-                char type[10];
-                switch (message.type) {
-                  case EventType::START:
-                    strcpy(&type[0], "START");
-                    break;
-                  case EventType::BLOCKED:
-                    strcpy(&type[0], "BLOCKED");
-                    break;
-                  case EventType::RESUMED:
-                    strcpy(&type[0], "RESUMED");
-                    break;
-                  case EventType::END:
-                    strcpy(&type[0], "END");
-                    break;
-                }
-//                Serial.printf(message.type == EventType::START? "START":"END"); // temporary
-//                Serial.print("/");
-//                Serial.println(message.time);
-
-                Serial.printf("taks name/type/time: %s/%s/%ld\n", message.taskName, type, message.time);
-                
-                counter++;
-                #endif
-
-                #ifndef DEBUG_EVENT
-                Serial.write((byte*)&message, sizeof(EventsMessage));
-                Serial.write('\r');
-                Serial.write('\n');
-                #endif
-            
-            } while(xQueueReceive(eventsQueue, &message, ( TickType_t ) 0));
+        if(!xQueueReceive(eventsQueue, &message, ( TickType_t ) 0)) {
+            vTaskDelay(pdMS_TO_TICKS(delayInMillis >> 1));
+            continue;
         }
+
+        sendEvent(sendEventsTaskName, EventType::START);
+        counter = 0;
 
         #ifdef DEBUG_EVENT
-        if(sent){
-            Serial.print("time to sent: ");
-            Serial.print(micros()-before);
-            Serial.print(" counter: ");
-            Serial.print(counter);
-            Serial.print(" error: ");
-            Serial.println(failedMessageCounter);
-            sent = false;
-        }
+        before = micros();
+        #endif
+        do {
+            #ifdef SEND_AS_STRING
+            // char type[10];
+            // switch (message.type) {
+            //   case EventType::START:
+            //     strcpy(&type[0], "START");
+            //     break;
+            //   case EventType::BLOCKED:
+            //     strcpy(&type[0], "BLOCKED");
+            //     break;
+            //   case EventType::RESUMED:
+            //     strcpy(&type[0], "RESUMED");
+            //     break;
+            //   case EventType::END:
+            //     strcpy(&type[0], "END");
+            //     break;
+            // }
+
+            switch (message.payloadType)
+            {
+            case PayloadType::NONE:
+                Serial.printf("%s,%s,%ld,,,,,,\n", 
+                    message.taskName, 
+                    EventNames[message.type], 
+                    message.time
+                );
+                break;
+
+            case PayloadType::MPC:
+                Serial.printf("%s,%s,%ld,%f,%f,%f,%ld,,\n", 
+                    message.taskName, 
+                    EventNames[message.type], 
+                    message.time,
+                    message.payload.mpc.x1,
+                    message.payload.mpc.x2,
+                    message.payload.mpc.u,
+                    message.payload.mpc.computationTime
+                );
+                break;
+            
+            case PayloadType::SEND_TASK:
+                Serial.printf("%s,%s,%ld,,,,,%d,%d\n", 
+                    message.taskName, 
+                    EventNames[message.type], 
+                    message.time,
+                    message.payload.sendTask.sentMessages,
+                    message.payload.sendTask.failedMessages
+                );
+                break;
+            
+            }
+            #endif
+
+            #ifndef SEND_AS_STRING
+            Serial.write((byte*)&message, sizeof(EventsMessage));
+            Serial.write('\r');
+            Serial.write('\n');
+            #endif
+        
+            counter++;
+        } while(xQueueReceive(eventsQueue, &message, ( TickType_t ) 0));
+
+        SendTaskPayload payload;
+        payload.sentMessages = counter;
+        payload.failedMessages = failedMessageCounter;
+        sendEvent(sendEventsTaskName, EventType::END, PayloadType::SEND_TASK, nullptr, &payload);
+
+        #ifdef DEBUG_EVENT
+        Serial.print("time to sent: ");
+        Serial.print(micros()-before);
+        Serial.print(" counter: ");
+        Serial.print(counter);
+        Serial.print(" error: ");
+        Serial.println(failedMessageCounter);
         #endif
 
         vTaskDelay(pdMS_TO_TICKS(delayInMillis));

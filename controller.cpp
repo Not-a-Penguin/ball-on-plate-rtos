@@ -138,11 +138,15 @@ void Controller::run(){
       xEventGroupSetBits(*(this->xEventGroup), this->inputEventBit);
 
       EventsHandler::MpcPayload payload;
+
+      payload.x1 = states(0);
+      payload.x2 = states(1);
       payload.u = uDegree;
       payload.cost = 0; // TODO: change this value after MPC insertion
       payload.computationTime = float(micros()-timeBeforeMpc)/1000.0; // conversion from micros to millis
 
-      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, nullptr, &payload);
+      EventsHandler::sendEvent(this->taskName, EventsHandler::EventType::END, EventsHandler::PayloadType::MPC, &payload);
+
     }
   }
 }
