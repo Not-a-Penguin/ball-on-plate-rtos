@@ -6,8 +6,8 @@
 #include "tiny_api.hpp"
 #include "servoControl.h"
 
-#define NHORIZON 30
-#define MAX_ITERATIONS 200
+#define NHORIZON 25 // 50
+#define MAX_ITERATIONS 500
 
 void saturate(float* input, float lowerLimit, float upperLimit);
 

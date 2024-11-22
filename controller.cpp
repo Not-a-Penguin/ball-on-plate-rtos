@@ -31,7 +31,8 @@ Controller::Controller(ServoControl *servo, BLA::Matrix<systemOrder, systemOrder
 
   for(int i = 0; i < systemOrder; i++){
     for(int j = 0; j < systemOrder; j++){
-      this->Adyn_data[i+j] = A(i, j);
+      this->Adyn_data[i*2+j] = A(i, j);
+      std::cout << A(i, j) << std::endl;
     }
     this->Bdyn_data[i+0] = B(i, 0);
     this->Q_data[i] = Q_data[i];
@@ -43,6 +44,8 @@ Controller::Controller(ServoControl *servo, BLA::Matrix<systemOrder, systemOrder
   this->Bdyn = Map<Matrix<tinytype, systemOrder, 1>>(Bdyn_data);
   this->Q = Map<Matrix<tinytype, systemOrder, 1>>(Q_data);
   this->R = Map<Matrix<tinytype, 1, 1>>(R_data);
+
+  std::cout << Adyn << std::endl;
 
   // this->x_min = tiny_MatrixNxNh::Constant(-30);
   // this->x_max = tiny_MatrixNxNh::Constant(30);
@@ -85,7 +88,17 @@ float Controller::controlLaw(BLA::Matrix<systemOrder,1> currentState){
     tiny_set_x0(this->solver, this->x);
     
     // 2. Update reference
-    // work->Xref = Xref_total.block<systemOrder, NHORIZON>(0, k);
+//    if(this->taskName == "xControllerTask") {
+//      float a = 5;
+//      float w = 5.0;
+//      float phi = 0.0;
+//      float t = millis()/1000.0;
+//      float x = a*sin(w*t + phi);
+//      tiny_MatrixNxNh ref = tiny_MatrixNxNh::Zero();
+//      ref.block<1, NHORIZON>(0, 0) = tiny_Matrix1Nh::Constant(x);
+//      ref.block<1, NHORIZON>(1, 0) = tiny_Matrix1Nh::Constant(w*a*cos(w*t + phi));
+//      work->Xref = ref; // Xref_total.block<systemOrder, NHORIZON>(0, k); 
+//    }
 
     // 3. Reset dual variables if needed
     this->work->y = tiny_MatrixNuNhm1::Zero();
@@ -123,13 +136,19 @@ void Controller::run(){
       TickType_t xLastWakeTime = xTaskGetTickCount();
       float controlInput = this->controlLaw(states);
       // vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS(this->_interval) );
-      if(this->taskName == "xControllerTask")
-        EventsHandler::vTaskDelayUntilWithEvent(this->taskName, &xLastWakeTime, pdMS_TO_TICKS(this->_interval)); // TODO: check if this is needed for the Y axis
       
       //Convert to degree and saturate
       float uDegree = rad2deg(controlInput);
       saturate(&uDegree, -25, 25);
       float angle = (uDegree) + this->servo->getOffset();
+
+      if(this->taskName == "xControllerTask") {
+        EventsHandler::vTaskDelayUntilWithEvent(this->taskName, &xLastWakeTime, pdMS_TO_TICKS(this->_interval)); // TODO: check if this is needed for the Y axis
+//        this->servo->moveServo(angle);
+      }
+//      else
+//        this->servo->moveServo(this->servo->getOffset()+20); 
+        
       this->servo->moveServo(angle);
 
       //Send to touchScreenQueue -> send
