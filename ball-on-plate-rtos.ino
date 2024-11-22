@@ -76,8 +76,8 @@ BLA::Matrix<1,2> hInfSatGains = {17.8954, 10.0515};
 BLA::Matrix<1,2> lqrGains = {8.4460, 8.7225}; 
 BLA::Matrix<1, 2> poleGains = {2.0527, 1.8320};
 #else
-tinytype Q_data[] = {10.0, 1.0};
-tinytype R_data[] = {1.0};
+tinytype Q_data[] = {10.0, .01};
+tinytype R_data[] = {0.01};
 #endif
 
 #ifndef USE_MPC
@@ -103,7 +103,7 @@ void setup(){
   xInputOutputQueue = xQueueCreate(1, sizeof(inputAndOutput));
   yInputOutputQueue = xQueueCreate(1, sizeof(inputAndOutput));
 
-  eventsQueue = xQueueCreate(25, sizeof(EventsHandler::EventsMessage));
+  eventsQueue = xQueueCreate(30, sizeof(EventsHandler::EventsMessage));
 
   controlInputEvent = xEventGroupCreate();
   xEventGroupSetBits(controlInputEvent, xControlInputBitReady);
@@ -119,8 +119,8 @@ void setup(){
    0
  );
  
-  ServoX.setOffset(95.0);
-  ServoY.setOffset(71.0);  
+  ServoX.setOffset(93.0);
+  ServoY.setOffset(72.0);
   ServoX.startPosition();
   ServoY.startPosition();
 

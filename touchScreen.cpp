@@ -90,12 +90,12 @@ void TouchScreen::run(){
       // uX = xController.controlLaw(statesX);   
       // uDegreeX = rad2deg(xInput);
       // saturate(&uDegreeX, -25, 25);
-      xInput = deg2rad(uDegreeX); // TODO: check if this is still needed
+//      xInput = deg2rad(uDegreeX); // TODO: check if this is still needed
 
       // uY = yController.controlLaw(statesY);   
       // uDegreeY = rad2deg(yInput);
       // saturate(&uDegreeY, -25, 25);
-      yInput = deg2rad(uDegreeY); // TODO: check if this is still needed
+//      yInput = deg2rad(uDegreeY); // TODO: check if this is still needed
 
       // angleX = (uDegreeX) + servos.offset1;       
       // angleY = (uDegreeY) + servos.offset2;
